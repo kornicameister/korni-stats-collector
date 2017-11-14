@@ -11,6 +11,7 @@ name = "pypi"
 [packages]
 pyrebase = "==3.0.27"
 pygithub = "==1.35"
+click = "==6.7"
 
 
 [requires]

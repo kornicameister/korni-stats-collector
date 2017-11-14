@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "bfbb031561ad01aa1bbb40eb06f098295dd2e1169f9bf0f16e3a63a77fb89744"
+            "sha256": "9aa8b2f3e2cf7268794d7d0b9dc0395c220027f595130b545ca2bdde29b82836"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -29,6 +29,13 @@
         ]
     },
     "default": {
+        "click": {
+            "hashes": [
+                "sha256:29f99fc6125fbc931b758dc053b3114e55c77a6e4c6c3a2674a2dc986016381d",
+                "sha256:f15516df478d5a56180fbf80e68f206010e6d160fc39fa508b65e035fd75130b"
+            ],
+            "version": "==6.7"
+        },
         "gcloud": {
             "hashes": [
                 "sha256:3371992c738cee83a9bf67230e434c811428fcccbcb607696f2d4f76dd0a157e"
@@ -61,13 +68,6 @@
                 "sha256:5b5b056ec6f2304e7920b632885bd157fa71d1a7f3ddd00a43b1541a8d1a2460"
             ],
             "version": "==3.0.0"
-        },
-        "pep8": {
-            "hashes": [
-                "sha256:b22cfae5db09833bb9bd7c8463b53e1a9c9b39f12e304a8d0bba729c501827ee",
-                "sha256:fe249b52e20498e59e0b5c5256aa52ee99fc295b26ec9eaa85776ffdb9fe6374"
-            ],
-            "version": "==1.7.1"
         },
         "protobuf": {
             "hashes": [
