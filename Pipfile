@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[dev-packages]
+
+[packages]
+pyrebase = "==3.0.27"
+pygithub = "==1.35"
+
+
+[requires]
+python_version = "3.6"
