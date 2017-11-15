@@ -1,19 +1,24 @@
 [[source]]
+
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
 
 [dev-packages]
-"pydocstyle" = "==2.1.1"
+
+pydocstyle = "==2.1.1"
 "flake8" = "==3.5.0"
 
 
 [packages]
+
 pyrebase = "==3.0.27"
 pygithub = "==1.35"
 click = "==6.7"
+six = "==1.11.0"
 
 
 [requires]
+
 python_version = "3.7"
