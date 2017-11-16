@@ -23,12 +23,12 @@ class GithubCollector(base.Collector):
         username = os.environ.get(GITHUB_USER_KEY, None)
         password = os.environ.get(GITHUB_PWD_KEY, None)
 
-        if not (username or password):
+        if not (username or password) and not token:
             raise base.CollectorConfigurationError(f'Missing env[{GITHUB_USER_KEY}] and env[{GITHUB_PWD_KEY}]')
         elif not token and not (username or password):
             raise base.CollectorConfigurationError(f'Missing env[{GITHUB_API_KEY}]')
 
-        self._g = github.Github(token or username, password)
+        self._g = github.Github(token or username, password if token is None else password)
 
     def collect(self):
         s = self._g.get_api_status()
