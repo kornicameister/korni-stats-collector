@@ -17,13 +17,15 @@ GITHUB_USER_KEY: str = 'GITHUB_USER'
 GITHUB_PWD_KEY: str = 'GITHUB_PASSWORD'
 
 HARDCODED_REPOS: List[str] = [
-    'kornicameister/korni'
+    'kornicameister/korni',
+    'kornicameister/korni-stats-collector'
 ]
 
 
 class GithubStats(object):
     def __init__(self, timestamp=None, contributions=None):
         self._timestamp = timestamp
+        self._took_ms = None
         self._contributions = contributions
 
     @property
@@ -33,6 +35,14 @@ class GithubStats(object):
     @property
     def contributions(self):
         return self._contributions if self._contributions else {}
+
+    @property
+    def took_ms(self):
+        return self._took_ms
+
+    @took_ms.setter
+    def took_ms(self, took_ms: float):
+        self._took_ms = took_ms
 
 
 class GithubCollector(base.Collector):
@@ -58,27 +68,31 @@ class GithubCollector(base.Collector):
         if s.status != 'good':
             raise base.CollectorSourceUnavailable()
         else:
+            start_ts = time.time()
             me = self._g.get_user()
-            return GithubStats(
-                contributions=self._get_contributions(me)
-            )
+
+            stats = GithubStats(contributions=self._get_contributions(me))
+            stats.took_ms = time.time() - start_ts
+
+            return stats
 
     def _get_contributions(self, user: NamedUser.NamedUser):
         contributions = dict()
-        user_name = user.name
 
         for repo in [self._g.get_repo(repo, False) for repo in HARDCODED_REPOS]:
             repo: Repository.Repository = repo
             repo_name = repo.name
             repo_collaborators = [c for c in repo.get_collaborators()]
 
+            LOG.info(f'Collecting stats from {repo_name} repository')
+
             if not filter(lambda c: c.login == user.login, repo_collaborators):
-                LOG.warning(f'${user_name} is not a collaborator of ${repo_name}')
+                LOG.warning(f'${user.login} is not a collaborator of {repo_name} repository')
                 return contributions
 
-            contributions[repo_name] = {
+            contributions[f'{repo.owner.login}/{repo_name}'] = {
                 'is_fork': repo.fork,
-                'is_mine': repo.owner.name == user_name,
+                'is_mine': repo.owner.login == user.login,
                 'commit_count': self._count_commits_in_repo(repo, user),
                 'pull_request_count': self._count_prs_in_repo(repo, user)
             }
@@ -108,6 +122,6 @@ class GithubCollector(base.Collector):
                 'authored': len([c for c in repo.get_commits(author=user)])
             }
         except github.GithubException:
-            LOG.exception(f'Failed to count commits in ${repo.name}')
+            LOG.exception(f'Failed to count commits in {repo.name}')
             commits = []
         return len(commits)
