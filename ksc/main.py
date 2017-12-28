@@ -1,11 +1,18 @@
+import logging
 import sys
 
 import click
 
-from ksc import const
 from ksc import collector
+from ksc import const
 
 HELLO_MSG: str = 'ksc - korni-stats-collector'
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+    datefmt='%m-%d %H:%M',
+)
 
 
 @click.group()
