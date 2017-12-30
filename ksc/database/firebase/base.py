@@ -3,7 +3,7 @@ import functools
 
 import six
 
-from ksc.uploader import firebase
+from ksc.database import firebase
 
 
 @six.add_metaclass(abc.ABCMeta)

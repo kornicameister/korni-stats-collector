@@ -1,6 +1,6 @@
 import datetime
 
-from ksc.uploader.model import base
+from ksc.database.firebase import base
 
 
 class Meta(base.FirebaseBaseModel):
