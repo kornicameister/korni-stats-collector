@@ -10,6 +10,10 @@ class Meta(base.FirebaseBaseModel):
         super().__init__(key)
         self._last_run = last_run
 
+    @property
+    def last_run(self) -> datetime.datetime:
+        return self._last_run
+
     @staticmethod
     def from_dict(key, data):
         return Meta(key, data.get('last_run'))

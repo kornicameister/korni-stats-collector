@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import time
@@ -9,6 +10,7 @@ from github import PullRequest
 from github import Repository
 
 from ksc.collector import base
+from ksc.database.firebase import meta
 
 LOG: logging.Logger = logging.getLogger(__name__)
 
@@ -23,32 +25,37 @@ HARDCODED_REPOS: List[str] = [
 
 
 class GithubStats(object):
-    def __init__(self, timestamp=None, contributions=None):
-        self._timestamp = timestamp
+    def __init__(self, collected_at: datetime.datetime, since: datetime.datetime, contributions=None):
+        self._collected_at = collected_at
+        self._since = since
         self._took_ms = None
         self._contributions = contributions
 
     @property
-    def timestamp(self):
-        return self._timestamp if self._timestamp else time.time()
-
-    @property
-    def contributions(self):
-        return self._contributions if self._contributions else {}
-
-    @property
-    def took_ms(self):
+    def took_ms(self) -> float:
         return self._took_ms
 
     @took_ms.setter
     def took_ms(self, took_ms: float):
         self._took_ms = took_ms
 
+    def to_dict(self) -> dict:
+        return {
+            'collected_at': self._collected_at,
+            'since': self._since,
+            'took_ms': self._took_ms,
+            'contributions': self._contributions
+        }
+
+    def __repr__(self):
+        return f'GS [at={self._collected_at}, since={self._since}, took={self._took_ms}]'
+
 
 class GithubCollector(base.Collector):
     def __init__(self) -> None:
         super().__init__()
         self._g: github.Github = None
+        self._last_stats_meta: meta.Meta = meta.Meta.list(limit=1)[0]
 
     def init(self):
         token = os.environ.get(GITHUB_API_KEY, None)
@@ -71,7 +78,11 @@ class GithubCollector(base.Collector):
             start_ts = time.time()
             me = self._g.get_user()
 
-            stats = GithubStats(contributions=self._get_contributions(me))
+            stats = GithubStats(
+                collected_at=datetime.datetime.today(),
+                since=self._last_stats_meta.last_run,
+                contributions=self._get_contributions(me)
+            )
             stats.took_ms = time.time() - start_ts
 
             return stats
@@ -93,16 +104,18 @@ class GithubCollector(base.Collector):
             contributions[f'{repo.owner.login}/{repo_name}'] = {
                 'is_fork': repo.fork,
                 'is_mine': repo.owner.login == user.login,
-                'commit_count': self._count_commits_in_repo(repo, user),
-                'pull_request_count': self._count_prs_in_repo(repo, user)
+                'commit_count': self._count_commits_in_repo(repo, user, self._last_stats_meta.last_run),
+                'pull_request_count': self._count_prs_in_repo(repo, user, self._last_stats_meta.last_run)
             }
 
         return contributions
 
     @staticmethod
-    def _count_prs_in_repo(repo: Repository.Repository, user: NamedUser.NamedUser):
-        open_prs: List[PullRequest] = [pr for pr in repo.get_pulls(state='open', base='master')]
-        merged_prs: List[PullRequest] = [pr for pr in repo.get_pulls(state='closed', base='master')]
+    def _count_prs_in_repo(repo: Repository.Repository, user: NamedUser.NamedUser, since: datetime.datetime):
+        open_prs: List[PullRequest] = [pr for pr in repo.get_pulls(state='open', base='master') if
+                                       pr.created_at.timestamp() >= since.timestamp()]
+        merged_prs: List[PullRequest] = [pr for pr in repo.get_pulls(state='closed', base='master') if
+                                         pr.created_at.timestamp() >= since.timestamp()]
         return {
             'total': {
                 'open': len(open_prs),
@@ -115,11 +128,11 @@ class GithubCollector(base.Collector):
         }
 
     @staticmethod
-    def _count_commits_in_repo(repo: Repository.Repository, user: NamedUser.NamedUser):
+    def _count_commits_in_repo(repo: Repository.Repository, user: NamedUser.NamedUser, since: datetime.datetime):
         try:
             return {
-                'total': len([c for c in repo.get_commits()]),
-                'authored': len([c for c in repo.get_commits(author=user)])
+                'total': len([c for c in repo.get_commits(since=since)]),
+                'authored': len([c for c in repo.get_commits(author=user, since=since)])
             }
         except github.GithubException:
             LOG.exception(f'Failed to count commits in {repo.name}')
