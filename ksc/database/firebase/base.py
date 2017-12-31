@@ -1,7 +1,10 @@
 import abc
 import functools
+import typing
+import uuid
 
 import six
+from google.cloud.firestore_v1beta1 import DocumentReference
 
 from ksc.database import firebase
 
@@ -12,6 +15,10 @@ class FirebaseBaseModel(object):
 
     def __init__(self, key: str):
         self._key = key
+
+    @property
+    def id(self):
+        return self._key
 
     @abc.abstractmethod
     def to_dict(self):
@@ -41,3 +48,18 @@ class FirebaseBaseModel(object):
         doc = ref.get()
 
         return cls.from_dict(doc.id, doc.to_dict())
+
+    @classmethod
+    def save(cls, data: typing.List[dict]):
+        client = firebase.get_db()
+        batch = client.batch()
+
+        for d in data:
+            batch.create(DocumentReference(cls.ref, str(uuid.uuid4()), client=client), d)
+
+        batch.commit()
+
+    @classmethod
+    def update(cls, key:str, field_updates:dict):
+        client = firebase.get_db()
+        client.document(key).update(field_updates)

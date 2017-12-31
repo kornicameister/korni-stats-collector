@@ -1,6 +1,9 @@
 import abc
+import typing
 
 import six
+
+from ksc.database.firebase import contribution
 
 
 class CollectorConfigurationError(RuntimeError):
@@ -14,7 +17,7 @@ class CollectorSourceUnavailable(Exception):
 @six.add_metaclass(abc.ABCMeta)
 class Collector(object):
     @abc.abstractmethod
-    def collect(self):
+    def collect(self) -> typing.List[contribution.Contribution]:
         pass
 
     @abc.abstractmethod

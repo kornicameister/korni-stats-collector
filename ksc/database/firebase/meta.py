@@ -22,3 +22,8 @@ class Meta(base.FirebaseBaseModel):
         return {
             'last_run': self._last_run
         }
+
+    @staticmethod
+    def update_meta(last_run: datetime.datetime):
+        meta = Meta.list(limit=1)[0]
+        Meta.update(f'{Meta.ref}/{meta.id}', {'last_run': last_run})
