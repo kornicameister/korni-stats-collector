@@ -7,12 +7,16 @@ from ksc.database.firebase import base
 class Contribution(base.FirebaseBaseModel):
     ref = u'contribution'
 
-    def __init__(self, key: str, source: str, repo: str, start: datetime.datetime, end: datetime.datetime,
-                 contributions: dict):
+    def __init__(
+        self, key: str, source: str, repo: str, start: datetime.datetime,
+        end: datetime.datetime, contributions: dict
+    ):
         super().__init__(key)
 
         if source not in const.REPOS:
-            raise Exception(f'Unknown source "{source}", must be one of {const.REPOS}')
+            raise Exception(
+                f'Unknown source "{source}", must be one of {const.REPOS}'
+            )
 
         self._contributions = contributions
         self._source = source

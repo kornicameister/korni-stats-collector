@@ -19,9 +19,7 @@ class Meta(base.FirebaseBaseModel):
         return Meta(key, data.get('last_run'))
 
     def to_dict(self):
-        return {
-            'last_run': self._last_run
-        }
+        return {'last_run': self._last_run}
 
     @staticmethod
     def update_meta(last_run: datetime.datetime):

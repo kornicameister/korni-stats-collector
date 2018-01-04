@@ -42,7 +42,9 @@ class FirebaseBaseModel(object):
     @functools.lru_cache(maxsize=10, typed=True)
     def one(cls, key):
         if key is None:
-            raise ValueError('Cannot fetch unique element without specified key')
+            raise ValueError(
+                'Cannot fetch unique element without specified key'
+            )
 
         ref = firebase.get_db().collection(cls.ref).document(key)
         doc = ref.get()
@@ -55,11 +57,13 @@ class FirebaseBaseModel(object):
         batch = client.batch()
 
         for d in data:
-            batch.create(DocumentReference(cls.ref, str(uuid.uuid4()), client=client), d)
+            batch.create(
+                DocumentReference(cls.ref, str(uuid.uuid4()), client=client), d
+            )
 
         batch.commit()
 
     @classmethod
-    def update(cls, key:str, field_updates:dict):
+    def update(cls, key: str, field_updates: dict):
         client = firebase.get_db()
         client.document(key).update(field_updates)

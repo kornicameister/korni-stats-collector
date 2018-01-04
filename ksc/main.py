@@ -33,7 +33,9 @@ def collect(from_repo: str):
     c = collector.get_collector(from_repo)
     c.init()
 
-    contribution.Contribution.save([contrib.to_dict() for contrib in c.collect()])
+    contribution.Contribution.save([
+        contrib.to_dict() for contrib in c.collect()
+    ])
     meta.Meta.update_meta(datetime.datetime.today())
 
 

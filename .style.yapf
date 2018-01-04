@@ -1,0 +1,9 @@
+[style]
+based_on_style = pep8
+dedent_closing_brackets = true
+coalesce_brackets = true
+allow_split_before_dict_value = false
+column_limit = 79
+split_complex_comprehension = true
+use_tabs = false
+allow_multiline_lambdas = true
