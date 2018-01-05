@@ -1,4 +1,3 @@
-import datetime
 import logging
 import sys
 
@@ -6,8 +5,6 @@ import click
 
 from ksc import collector
 from ksc import const
-from ksc.database.firebase import contribution
-from ksc.database.firebase import meta
 
 HELLO_MSG: str = 'ksc - korni-stats-collector'
 
@@ -31,12 +28,7 @@ def collect(from_repo: str):
     click.echo(f'Spawning collecting the stats from "{from_repo}"')
 
     c = collector.get_collector(from_repo)
-    c.init()
-
-    contribution.Contribution.save([
-        contrib.to_dict() for contrib in c.collect()
-    ])
-    meta.Meta.update_meta(datetime.datetime.today())
+    c()
 
 
 cli.add_command(collect)
