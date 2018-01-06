@@ -48,7 +48,8 @@ async def fetch_repos(token: str, url: str,
 
 
 async def fetch_contributions(token: str, repo: github.Repo,
-                              author: str, session: aiohttp.ClientSession):
+                              since: str, author: str,
+                              session: aiohttp.ClientSession):
     def pr_author(r: github.PullRequest):
         return r.author_association.lower() in ['owner', 'contributor'] \
                and r.user.login == author
@@ -56,17 +57,22 @@ async def fetch_contributions(token: str, repo: github.Repo,
     contributions = await asyncio.gather(
         fetch_list(
             github.Commit, token,
-            purl.expand(repo.commits_url), session
+            purl.expand(repo.commits_url), session,
+            {'since': since}
         ),
         fetch_list(
             github.Commit, token,
-            purl.expand(repo.commits_url), session, {'author': author}),
+            purl.expand(repo.commits_url), session,
+            {'author': author, 'since': since}
+        ),
         fetch_list(
             github.Issue, token,
-            purl.expand(repo.issues_url), session),
+            purl.expand(repo.issues_url), session, {'since': since}),
         fetch_list(
             github.Issue, token,
-            purl.expand(repo.issues_url), session, {'creator': author}),
+            purl.expand(repo.issues_url), session,
+            {'creator': author, 'since': since}
+        ),
         fetch_list(
             github.PullRequest, token, purl.expand(repo.pulls_url), session,
             {'base': 'master', 'state': 'open', 'sort': 'created'}
@@ -75,6 +81,7 @@ async def fetch_contributions(token: str, repo: github.Repo,
             github.PullRequest, token, purl.expand(repo.pulls_url), session,
             {'base': 'master', 'state': 'closed', 'sort': 'created'}
         )
+
     )
 
     return {
@@ -159,7 +166,9 @@ async def fetch_list(model: T, token: str,
             return data
 
 
-async def main(token: str):
+async def main(last_run_date: datetime.datetime, token: str):
+    since = last_run_date.isoformat()
+
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
         api_limit = await fetch_api_limit(token, session)
 
@@ -181,7 +190,7 @@ async def main(token: str):
         )
         user_contributions = await asyncio.gather(
             *[
-                fetch_contributions(token, repo, user.login, session)
+                fetch_contributions(token, repo, since, user.login, session)
                 for repo in itertools.chain(*repos)
             ]
         )
@@ -198,6 +207,6 @@ def raise_for_limit(response):
         print('!!!!', response)
 
 
-def collect(_: datetime.datetime):
+def collect(last_run_date: datetime.datetime):
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(os.environ[GITHUB_API_KEY]))
+    loop.run_until_complete(main(last_run_date, os.environ[GITHUB_API_KEY]))
