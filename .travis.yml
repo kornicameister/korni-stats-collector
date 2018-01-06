@@ -1,11 +1,24 @@
-sudo: false
+sudo: required
 language: python
 
 python:
   - "3.6"
 
-install:
-  - pip install tox tox-travis
+env:
+  - IGNORE_DOCKER_VERSION=true
 
-script:
-  - tox -e pep8
+before_install:
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y install docker-ce
+  - pip install pip tox tox-travis --upgrade
+  - docker --version
+  - docker-compose --version
+
+jobs:
+  include:
+    - stage: test
+      script: tox -e pep8
+    - stage: image
+      script: docker build -t travis/kcs:${TRAVIS_BRANCH}_${TRAVIS_EVENT_TYPE} .
