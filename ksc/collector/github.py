@@ -81,7 +81,28 @@ async def fetch_contributions(token: str, repo: github.Repo,
             github.PullRequest, token, purl.expand(repo.pulls_url), session,
             {'base': 'master', 'state': 'closed', 'sort': 'created'}
         )
+    )
 
+    contributions_lengths = [len(d) for d in contributions]
+    LOG.debug(f'Contributions count is '
+              f'{contributions_lengths} for {repo.name}')
+
+    if utils.ilen(filter(lambda x: x > 0, contributions_lengths)) == 0:
+        LOG.info(f'{author} has not created neither of (commits,issues,pr) '
+                 f'in {repo.name} since {since}')
+        return None
+
+    commits_count_total = len(contributions[0])
+    commits_count_authored = len(contributions[1])
+    issues_count_total = len(contributions[2])
+    issues_count_authored = len(contributions[3])
+    pull_request_count_total_open = len(contributions[4])
+    pull_request_count_total_merged = len(contributions[5])
+    pull_request_count_authored_open = utils.ilen(
+        filter(pr_author, contributions[4])
+    )
+    pull_request_count_authored_merged = utils.ilen(
+        filter(pr_author, contributions[5])
     )
 
     return {
@@ -89,21 +110,21 @@ async def fetch_contributions(token: str, repo: github.Repo,
         'is_fork': repo.fork,
         'is_private': repo.private,
         'commits_count': {
-            'total': len(contributions[0]),
-            'authored': len(contributions[1])
+            'total': commits_count_total,
+            'authored': commits_count_authored
         },
         'issues_count': {
-            'total': len(contributions[2]),
-            'authored': len(contributions[3])
+            'total': issues_count_total,
+            'authored': issues_count_authored
         },
         'pull_request_count': {
             'total': {
-                'open': len(contributions[4]),
-                'merged': len(contributions[5])
+                'open': pull_request_count_total_open,
+                'merged': pull_request_count_total_merged
             },
             'authored': {
-                'open': utils.ilen(filter(pr_author, contributions[4])),
-                'merged': utils.ilen(filter(pr_author, contributions[5]))
+                'open': pull_request_count_authored_open,
+                'merged': pull_request_count_authored_merged
             }
         },
     }
@@ -188,23 +209,20 @@ async def main(last_run_date: datetime.datetime, token: str):
                 session, {'visibility': 'private'}
             )
         )
-        user_contributions = await asyncio.gather(
+        user_contributions = filter(None, await asyncio.gather(
             *[
                 fetch_contributions(token, repo, since, user.login, session)
                 for repo in itertools.chain(*repos)
             ]
-        )
+        ))
         for uc in user_contributions:
             print(uc)
 
 
 def raise_for_limit(response):
-    try:
-        remaining = int(response.headers['X-RateLimit-Remaining'])
-        if response.status == 403 and remaining == 0:
-            raise RuntimeError('API limit exceeded')
-    except KeyError:
-        print('!!!!', response)
+    remaining = int(response.headers['X-RateLimit-Remaining'])
+    if response.status == 403 and remaining == 0:
+        raise RuntimeError('API limit exceeded')
 
 
 def collect(last_run_date: datetime.datetime):
