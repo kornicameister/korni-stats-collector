@@ -1,46 +1,36 @@
 import abc
 import functools
+import logging
 import typing
 import uuid
 
 import six
 from google.cloud.firestore_v1beta1 import DocumentReference
+from jsonmodels import models
 
 from ksc.database import firebase
 
+LOG = logging.getLogger(__name__)
+
 
 @six.add_metaclass(abc.ABCMeta)
-class FirebaseBaseModel(object):
+class FirebaseBaseModel(models.Base):
     ref: str = None
-
-    def __init__(self, key: str):
-        self._key = key
-
-    @property
-    def id(self):
-        return self._key
-
-    @abc.abstractmethod
-    def to_dict(self):
-        pass
-
-    @staticmethod
-    @abc.abstractmethod
-    def from_dict(key: str, data: dict):
-        pass
 
     @classmethod
     def list(cls, limit: int = None):
+        LOG.info(f'Listing {cls}')
         ref = firebase.get_db().collection(cls.ref)
 
         if limit is not None and limit >= 1:
             ref.limit(limit)
 
-        return [cls.from_dict(i.id, i.to_dict()) for i in ref.get()]
+        return [cls(**i.to_dict()) for i in ref.get()]
 
     @classmethod
     @functools.lru_cache(maxsize=10, typed=True)
     def one(cls, key):
+        LOG.info(f'Fetching {cls}={key}')
         if key is None:
             raise ValueError(
                 'Cannot fetch unique element without specified key'
@@ -49,17 +39,19 @@ class FirebaseBaseModel(object):
         ref = firebase.get_db().collection(cls.ref).document(key)
         doc = ref.get()
 
-        return cls.from_dict(doc.id, doc.to_dict())
+        return cls(**doc.to_dict())
 
     @classmethod
-    def save(cls, data: typing.List[dict]):
+    def save(cls, data: typing.List[typing.Union[models.Base, dict]]):
+        LOG.info(f'Saving {len(data)} object of {cls}')
         client = firebase.get_db()
         batch = client.batch()
 
         for d in data:
-            batch.create(
-                DocumentReference(cls.ref, str(uuid.uuid4()), client=client), d
-            )
+            values = d.to_struct() if isinstance(d, FirebaseBaseModel) else d
+            ref = DocumentReference(cls.ref, str(uuid.uuid4()), client=client)
+            LOG.debug(f'Generated ref {ref} of {cls.ref}')
+            batch.create(ref, values)
 
         batch.commit()
 

@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import itertools
 import logging
 import os
@@ -197,6 +198,6 @@ def raise_for_limit(response):
         print('!!!!', response)
 
 
-def collect():
+def collect(_: datetime.datetime):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(os.environ[GITHUB_API_KEY]))

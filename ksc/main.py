@@ -5,6 +5,7 @@ import click
 
 from ksc import collector
 from ksc import const
+from ksc.database.firebase import last_run
 
 HELLO_MSG: str = 'ksc - korni-stats-collector'
 
@@ -28,7 +29,8 @@ def collect(from_repo: str):
     click.echo(f'Spawning collecting the stats from "{from_repo}"')
 
     c = collector.get_collector(from_repo)
-    c()
+    lr = last_run.LastRun.fetch()
+    c(lr.date)
 
 
 cli.add_command(collect)
