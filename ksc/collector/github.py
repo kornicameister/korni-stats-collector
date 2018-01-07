@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import hashlib
 import itertools
 import logging
 import os
@@ -107,8 +108,13 @@ async def fetch_contributions(token: str, repo: github.Repo,
         filter(pr_author, contributions[5])
     )
 
+    encoded_repo_name = repo.full_name.encode('utf-8')
+    repo_name = (repo.full_name
+                 if not repo.private
+                 else hashlib.sha256(encoded_repo_name).hexdigest())
+
     return {
-        'repo': repo.full_name,
+        'repo': repo_name,
         'is_fork': repo.fork,
         'is_private': repo.private,
         'commits_count': {
