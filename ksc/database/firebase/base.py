@@ -17,6 +17,14 @@ LOG = logging.getLogger(__name__)
 class FirebaseBaseModel(models.Base):
     ref: str = None
 
+    def __init__(self, **kwargs):
+        self._key = kwargs.pop('key')
+        super(FirebaseBaseModel, self).__init__(**kwargs)
+
+    @property
+    def key(self):
+        return self._key
+
     @classmethod
     def list(cls, limit: int = None):
         LOG.info(f'Listing {cls}')
@@ -25,7 +33,7 @@ class FirebaseBaseModel(models.Base):
         if limit is not None and limit >= 1:
             ref.limit(limit)
 
-        return [cls(**i.to_dict()) for i in ref.get()]
+        return [cls(key=i.id, **i.to_dict()) for i in ref.get()]
 
     @classmethod
     @functools.lru_cache(maxsize=10, typed=True)
@@ -36,10 +44,15 @@ class FirebaseBaseModel(models.Base):
                 'Cannot fetch unique element without specified key'
             )
 
-        ref = firebase.get_db().collection(cls.ref).document(key)
-        doc = ref.get()
+        ref: DocumentReference = (firebase
+                                  .get_db()
+                                  .collection(cls.ref)
+                                  .document(key))
 
-        return cls(**doc.to_dict())
+        doc = ref.get()
+        key = ref.id
+
+        return cls(key=key, **doc.to_dict())
 
     @classmethod
     def save(cls, data: typing.List[typing.Union[models.Base, dict]]):
@@ -58,4 +71,4 @@ class FirebaseBaseModel(models.Base):
     @classmethod
     def update(cls, key: str, field_updates: dict):
         client = firebase.get_db()
-        client.document(key).update(field_updates)
+        client.document(cls.ref, key).update(field_updates)

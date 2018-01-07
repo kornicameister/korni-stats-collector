@@ -1,45 +1,32 @@
-import datetime
+from jsonmodels import fields, models
 
-from ksc import const
 from ksc.database.firebase import base
+
+
+class CommitsCount(models.Base):
+    total = fields.IntField(required=True)
+    authored = fields.IntField(required=True)
+
+
+class IssuesCount(models.Base):
+    total = fields.IntField(required=True)
+    authored = fields.IntField(required=True)
+
+
+class PullRequestCountStat(models.Base):
+    open = fields.IntField(required=True)
+    merged = fields.IntField(required=True)
+
+
+class PullRequestCount(models.Base):
+    total = fields.EmbeddedField(PullRequestCountStat, required=True)
+    authored = fields.EmbeddedField(PullRequestCountStat, required=True)
 
 
 class Contribution(base.FirebaseBaseModel):
     ref = u'contribution'
-
-    def __init__(
-        self, key: str, source: str, repo: str, start: datetime.datetime,
-        end: datetime.datetime, contributions: dict
-    ):
-        super().__init__(key)
-
-        if source not in const.REPOS:
-            raise Exception(
-                f'Unknown source "{source}", must be one of {const.REPOS}'
-            )
-
-        self._contributions = contributions
-        self._source = source
-        self._repo = repo
-        self._start = start
-        self._end = end
-
-    @staticmethod
-    def from_dict(key: str, data: dict):
-        return Contribution(
-            key=key,
-            source=data['source'],
-            repo=data['repo'],
-            start=data['start'],
-            end=data['end'],
-            contributions=data['contributions']
-        )
-
-    def to_dict(self):
-        return {
-            'contributions': self._contributions,
-            'source': self._source,
-            'repo': self._repo,
-            'start': self._start,
-            'end': self._end,
-        }
+    repo = fields.StringField(required=True)
+    is_fork = fields.BoolField(required=True)
+    is_private = fields.BoolField(required=True)
+    commits_count = fields.EmbeddedField(CommitsCount)
+    issues_count = fields.EmbeddedField(IssuesCount)

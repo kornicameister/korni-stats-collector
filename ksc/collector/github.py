@@ -3,6 +3,7 @@ import datetime
 import itertools
 import logging
 import os
+import time
 import typing
 import ujson
 
@@ -11,6 +12,7 @@ import async_timeout
 import purl
 
 from ksc import utils
+from ksc.collector import base
 from ksc.collector.model import github
 
 LOG: logging.Logger = logging.getLogger(__name__)
@@ -187,8 +189,10 @@ async def fetch_list(model: T, token: str,
             return data
 
 
-async def main(last_run_date: datetime.datetime, token: str):
+async def main(last_run_date: datetime.datetime, token: str) \
+        -> base.CollectorResult:
     since = last_run_date.isoformat()
+    start = time.time()
 
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
         api_limit = await fetch_api_limit(token, session)
@@ -215,8 +219,14 @@ async def main(last_run_date: datetime.datetime, token: str):
                 for repo in itertools.chain(*repos)
             ]
         ))
-        for uc in user_contributions:
-            print(uc)
+
+        return base.CollectorResult(
+            user=user.login,
+            since=last_run_date,
+            until=datetime.datetime.today(),
+            took_ms=time.time() - start,
+            contributions=user_contributions
+        )
 
 
 def raise_for_limit(response):
@@ -225,6 +235,11 @@ def raise_for_limit(response):
         raise RuntimeError('API limit exceeded')
 
 
-def collect(last_run_date: datetime.datetime):
+def collect(last_run_date: datetime.datetime) -> base.CollectorResult:
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(last_run_date, os.environ[GITHUB_API_KEY]))
+    return loop.run_until_complete(
+        main(
+            last_run_date,
+            os.environ[GITHUB_API_KEY]
+        )
+    )
