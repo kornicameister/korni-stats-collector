@@ -3,6 +3,7 @@ import sys
 
 import click
 from jsonmodels import errors as jm_errors
+import ujson
 
 from ksc import collector
 from ksc import const
@@ -25,7 +26,9 @@ def cli():
 
 @click.command()
 @click.argument('from_repo', type=str, metavar='<from_repo>')
-def collect(from_repo: str):
+@click.option('--display', type=bool, is_flag=True, metavar='<display>')
+@click.option('--no-upload', type=bool, is_flag=True, metavar='<no_upload>')
+def collect(from_repo: str, display: bool, no_upload: bool):
     if from_repo not in const.REPOS:
         raise Exception(f'Unknown repo "{from_repo}"')
     click.echo(f'Spawning collecting the stats from "{from_repo}"')
@@ -34,14 +37,25 @@ def collect(from_repo: str):
     lr = last_run.LastRun.fetch()
     c = collector_function(lr.date)
 
+    if display:
+        click.echo(ujson.dumps(c))
+    if no_upload:
+        click.echo(
+            '--no-upload flag hes been detected, '
+            'skipping uploading to firebase'
+        )
+        return
+
     try:
         new_contributions = c.contributions
 
-        last_run.LastRun.update(lr.key, {
-            'took_ms': c.took_ms,
-            'date': c.until,
-            'successful': True
-        })
+        last_run.LastRun.update(
+            lr.key, {
+                'took_ms': c.took_ms,
+                'date': c.until,
+                'successful': True
+            }
+        )
         contribution.Contribution.save(new_contributions)
 
     except jm_errors.ValidationError:
