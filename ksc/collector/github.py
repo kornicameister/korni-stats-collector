@@ -12,7 +12,7 @@ import aiohttp
 import async_timeout
 import purl
 
-from ksc import utils
+from ksc import utils, const
 from ksc.collector import base
 from ksc.collector.model import github
 
@@ -113,10 +113,11 @@ async def fetch_contributions(token: str, repo: github.Repo,
                  if not repo.private
                  else hashlib.sha256(encoded_repo_name).hexdigest())
 
-    return {
+    result = {
         'repo': repo_name,
         'is_fork': repo.fork,
         'is_private': repo.private,
+        'platform': const.GITHUB_REPO,
         'commits_count': {
             'total': commits_count_total,
             'authored': commits_count_authored
@@ -134,8 +135,10 @@ async def fetch_contributions(token: str, repo: github.Repo,
                 'open': pull_request_count_authored_open,
                 'merged': pull_request_count_authored_merged
             }
-        },
+        }
     }
+
+    return result
 
 
 async def fetch_api_limit(token: str,
