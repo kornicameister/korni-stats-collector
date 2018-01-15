@@ -49,6 +49,11 @@ class PullRequest(GithubObject):
     base = fields.EmbeddedField(Branch, required=True)
     author_association = fields.StringField(required=True)
 
+    created_at = fields.DateTimeField(required=True)
+    updated_at = fields.DateTimeField(required=True)
+    closed_at = fields.DateTimeField(required=False)
+    merged_at = fields.DateTimeField(required=False)
+
 
 class Commit(GithubObject):
     pass

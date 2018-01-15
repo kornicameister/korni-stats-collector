@@ -51,30 +51,40 @@ async def fetch_repos(token: str, url: str,
 
 
 async def fetch_contributions(token: str, repo: github.Repo,
-                              since: str, author: str,
+                              since: datetime.datetime, author: str,
                               session: aiohttp.ClientSession):
     def pr_author(r: github.PullRequest):
         return r.author_association.lower() in ['owner', 'contributor'] \
                and r.user.login == author
 
+    def filter_pr_open_since(pr: github.PullRequest):
+        return pr.created_at >= since
+
+    def filter_pr_merged_since(pr: github.PullRequest):
+        if pr.merged_at is not None:
+            return pr.merged_at >= since
+        if pr.closed_at is not None:
+            return pr.closed_at >= since
+
     contributions = await asyncio.gather(
         fetch_list(
             github.Commit, token,
             purl.expand(repo.commits_url), session,
-            {'since': since}
+            {'since': since.isoformat()}
         ),
         fetch_list(
             github.Commit, token,
             purl.expand(repo.commits_url), session,
-            {'author': author, 'since': since}
+            {'author': author, 'since': since.isoformat()}
         ),
         fetch_list(
             github.Issue, token,
-            purl.expand(repo.issues_url), session, {'since': since}),
+            purl.expand(repo.issues_url), session,
+            {'since': since.isoformat()}),
         fetch_list(
             github.Issue, token,
             purl.expand(repo.issues_url), session,
-            {'creator': author, 'since': since}
+            {'creator': author, 'since': since.isoformat()}
         ),
         fetch_list(
             github.PullRequest, token, purl.expand(repo.pulls_url), session,
@@ -85,6 +95,9 @@ async def fetch_contributions(token: str, repo: github.Repo,
             {'base': 'master', 'state': 'closed', 'sort': 'created'}
         )
     )
+
+    contributions[4] = list(filter(filter_pr_open_since, contributions[4]))
+    contributions[5] = list(filter(filter_pr_merged_since, contributions[5]))
 
     contributions_lengths = [len(d) for d in contributions]
     LOG.debug(f'Contributions count is '
@@ -200,7 +213,6 @@ async def fetch_list(model: T, token: str,
 
 async def main(last_run_date: datetime.datetime, token: str) \
         -> base.CollectorResult:
-    since = last_run_date.isoformat()
     start = time.time()
 
     async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
@@ -224,7 +236,11 @@ async def main(last_run_date: datetime.datetime, token: str) \
         )
         user_contributions = filter(None, await asyncio.gather(
             *[
-                fetch_contributions(token, repo, since, user.login, session)
+                fetch_contributions(
+                    token, repo,
+                    last_run_date, user.login,
+                    session
+                )
                 for repo in itertools.chain(*repos)
             ]
         ))
