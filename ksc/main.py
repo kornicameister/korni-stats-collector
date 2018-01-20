@@ -1,6 +1,6 @@
+import json
 import logging
 import sys
-import json
 
 import click
 from jsonmodels import errors as jm_errors
@@ -38,7 +38,10 @@ def collect(from_repo: str, display: bool, no_upload: bool):
     c = collector_function(lr.date)
 
     if display:
-        click.echo(json.dumps(c, indent=2, sort_keys=True))
+        click.echo(json.dumps({
+            'contributions': c.contributions,
+            'user': c.user
+        }, indent=2, sort_keys=True))
     if no_upload:
         click.echo(
             '--no-upload flag hes been detected, '
