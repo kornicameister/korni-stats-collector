@@ -51,7 +51,9 @@ async def fetch_repos(token: str, url: str,
 
 
 async def fetch_contributions(token: str, repo: github.Repo,
-                              since: datetime.datetime, author: str,
+                              since: datetime.datetime,
+                              until: datetime.datetime,
+                              author: str,
                               session: aiohttp.ClientSession):
     def pr_author(r: github.PullRequest):
         return r.author_association.lower() in ['owner', 'contributor'] \
@@ -131,6 +133,8 @@ async def fetch_contributions(token: str, repo: github.Repo,
         'is_fork': repo.fork,
         'is_private': repo.private,
         'platform': const.GITHUB_REPO,
+        'from': since,
+        'until': until,
         'commits_count': {
             'total': commits_count_total,
             'authored': commits_count_authored
@@ -238,8 +242,8 @@ async def main(last_run_date: datetime.datetime, token: str) \
             *[
                 fetch_contributions(
                     token, repo,
-                    last_run_date, user.login,
-                    session
+                    last_run_date, datetime.datetime.today(),
+                    user.login, session
                 )
                 for repo in itertools.chain(*repos)
             ]
