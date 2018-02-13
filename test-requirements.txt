@@ -1,5 +1,5 @@
 pydocstyle==2.1.1
 pep8==1.7.1
 flake8==3.5.0
-yapf==0.20.1
+yapf==0.20.2
 bandit==1.4.0
