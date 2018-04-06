@@ -4,7 +4,6 @@ import logging
 import typing
 import uuid
 
-import six
 from google.cloud.firestore_v1beta1 import DocumentReference
 from jsonmodels import models
 
@@ -13,7 +12,6 @@ from ksc.database import firebase
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
 class FirebaseBaseModel(models.Base):
     ref: str = None
 
