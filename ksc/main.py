@@ -30,8 +30,9 @@ class DatetimeArg(click.ParamType):
     def __init__(self, fmt: str):
         self._fmt = fmt
 
-    def convert(self, value: typing.Union[None, str, datetime.datetime],
-                param, ctx) -> MaybeDatetime:
+    def convert(
+        self, value: typing.Union[None, str, datetime.datetime], param, ctx
+    ) -> MaybeDatetime:
         if value is None:
             return value
 
@@ -43,7 +44,10 @@ class DatetimeArg(click.ParamType):
             datetime_value_utc = datetime_value.replace(tzinfo=pytz.UTC)
             return datetime_value_utc
         except ValueError as ex:
-            self.fail(f'Could not parse datetime string "{value}" formatted as {self._fmt} ({ex})', param, ctx)
+            self.fail(
+                f'Could not parse datetime string "{value}" formatted as {self._fmt} ({ex})',
+                param, ctx
+            )
 
 
 @click.group()
@@ -57,9 +61,10 @@ def cli():
 @click.option('--no-upload', type=bool, is_flag=True, metavar='<no_upload>')
 @click.option('--since', type=DatetimeArg('%Y-%m-%d'))
 @click.option('--until', type=DatetimeArg('%Y-%m-%d'))
-def collect(from_repo: str, display: bool,
-            no_upload: bool,
-            since: MaybeDatetime, until: MaybeDatetime):
+def collect(
+    from_repo: str, display: bool, no_upload: bool, since: MaybeDatetime,
+    until: MaybeDatetime
+):
 
     if from_repo not in const.REPOS:
         raise Exception(f'Unknown repo "{from_repo}"')
