@@ -44,10 +44,9 @@ class FirebaseBaseModel(models.Base):
                 'Cannot fetch unique element without specified key'
             )
 
-        ref: DocumentReference = (firebase
-                                  .get_db()
-                                  .collection(cls.ref)
-                                  .document(key))
+        ref: DocumentReference = (
+            firebase.get_db().collection(cls.ref).document(key)
+        )
 
         doc = ref.get()
         key = ref.id

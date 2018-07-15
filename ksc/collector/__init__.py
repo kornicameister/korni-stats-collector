@@ -1,7 +1,6 @@
 import datetime
 import typing
 
-
 from ksc import const
 from ksc.collector import github, base
 

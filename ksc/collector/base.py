@@ -16,9 +16,10 @@ class CollectorSourceUnavailable(Exception):
 
 
 class CollectorResult(object):
-    def __init__(self, user: str, since: datetime.datetime,
-                 until: datetime.datetime,
-                 took_ms: float, contributions: typing.Iterable[dict]):
+    def __init__(
+        self, user: str, since: datetime.datetime, until: datetime.datetime,
+        took_ms: float, contributions: typing.Iterable[dict]
+    ):
         self._user = user
         self._since = since
         self._until = until
