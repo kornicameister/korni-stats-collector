@@ -1,6 +1,6 @@
 click==6.7
 six==1.11.0
-firebase-admin==2.12.0
+firebase-admin==2.13.0
 
 uvloop==0.11.0
 aiohttp==3.3.2
