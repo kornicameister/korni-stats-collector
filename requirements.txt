@@ -2,7 +2,7 @@ click==7.0
 six==1.11.0
 firebase-admin==2.13.0
 
-uvloop==0.11.2
+uvloop==0.11.3
 aiohttp==3.4.4
 cchardet==2.1.4
 aiodns==1.1.1
