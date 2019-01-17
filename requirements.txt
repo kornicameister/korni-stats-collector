@@ -2,7 +2,7 @@ click==7.0
 six==1.12.0
 
 google-cloud-firestore==0.31.0
-firebase-admin==2.14.0
+firebase-admin==2.15.0
 
 uvloop==0.11.3
 aiohttp==3.5.4
