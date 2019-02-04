@@ -5,8 +5,7 @@ import sys
 import click
 from jsonmodels import errors as jm_errors
 
-from ksc import collector
-from ksc import const
+from ksc.collector import github
 from ksc.database.firebase import contribution
 from ksc.database.firebase import last_run
 
@@ -20,36 +19,32 @@ logging.basicConfig(
 
 
 @click.group()
-def cli():
+def cli() -> None:
     click.echo(HELLO_MSG)
 
 
 @click.command()
-@click.argument('from_repo', type=str, metavar='<from_repo>')
 @click.option('--display', type=bool, is_flag=True, metavar='<display>')
 @click.option('--no-upload', type=bool, is_flag=True, metavar='<no_upload>')
-def collect(from_repo: str, display: bool, no_upload: bool):
-    if from_repo not in const.REPOS:
-        raise Exception(f'Unknown repo "{from_repo}"')
-    click.echo(f'Spawning collecting the stats from "{from_repo}"')
+def collect(display: bool, no_upload: bool) -> None:
+    click.echo('Spawning collecting the stats')
 
-    collector_function = collector.get_collector(from_repo)
     lr = last_run.LastRun.fetch()
-    c = collector_function(lr.date)
+    c = github.collect(lr.date)
 
     if display:
         click.echo(
             json.dumps({
                 'contributions': c.contributions,
-                'user': c.user
+                'user': c.user,
             },
                        indent=2,
-                       sort_keys=True)
+                       sort_keys=True),
         )
     if no_upload:
         click.echo(
             '--no-upload flag hes been detected, '
-            'skipping uploading to firebase'
+            'skipping uploading to firebase',
         )
         return
 
@@ -57,11 +52,12 @@ def collect(from_repo: str, display: bool, no_upload: bool):
         new_contributions = c.contributions
 
         last_run.LastRun.update(
-            lr.key, {
+            lr.key,
+            {
                 'took_ms': c.took_ms,
                 'date': c.until,
-                'successful': True
-            }
+                'successful': True,
+            },
         )
         contribution.Contribution.save(new_contributions)
 

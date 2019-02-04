@@ -13,10 +13,10 @@ class LastRun(base.FirebaseBaseModel):
     successful = fields.BoolField(required=True)
 
     @staticmethod
-    def update_meta(last_run: datetime.datetime):
+    def update_meta(last_run: datetime.datetime) -> None:
         meta = LastRun.list(limit=1)[0]
         LastRun.update(f'{LastRun.ref}/{meta.id}', {'last_run': last_run})
 
     @staticmethod
-    def fetch():
+    def fetch() -> 'LastRun':
         return LastRun.one('last_run')

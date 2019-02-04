@@ -1,5 +1,10 @@
-pydocstyle==3.0.0
-pep8==1.7.1
-flake8==3.7.4
 yapf==0.25.0
-bandit==1.5.1
+mypy==0.660
+flake8==3.7.4
+flake8-import-order==0.18
+flake8-bugbear==18.8.0
+flake8-commas==2.0.0
+flake8-bandit==1.0.2
+flake8-quotes==1.0.0
+flake8-print==3.1.0
+tox==3.7.0

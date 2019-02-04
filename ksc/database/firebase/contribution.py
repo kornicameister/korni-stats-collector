@@ -33,4 +33,3 @@ class Contribution(base.FirebaseBaseModel):
     pull_request_count = fields.EmbeddedField(PullRequestCount, required=True)
     since = fields.DateTimeField(required=True)
     until = fields.DateTimeField(required=True)
-    platform = fields.StringField(required=True)

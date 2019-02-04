@@ -1,4 +1,5 @@
-from jsonmodels import models, fields
+from jsonmodels import fields
+from jsonmodels import models
 
 
 class APILimitRate(models.Base):

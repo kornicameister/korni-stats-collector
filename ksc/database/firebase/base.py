@@ -1,12 +1,12 @@
 import abc
 import functools
 import logging
-import typing
+import typing as t
 import uuid
 
-import six
 from google.cloud.firestore_v1beta1 import DocumentReference
 from jsonmodels import models
+import six
 
 from ksc.database import firebase
 
@@ -15,18 +15,19 @@ LOG = logging.getLogger(__name__)
 
 @six.add_metaclass(abc.ABCMeta)
 class FirebaseBaseModel(models.Base):
-    ref: str = None
+    ref: str
 
-    def __init__(self, **kwargs):
-        self._key = kwargs.pop('key')
+    def __init__(
+            self,
+            key: t.Optional[str],
+            **kwargs: t.Dict[str, t.Any],
+    ) -> None:
+        self._key = key
         super(FirebaseBaseModel, self).__init__(**kwargs)
 
-    @property
-    def key(self):
-        return self._key
-
     @classmethod
-    def list(cls, limit: int = None):
+    def list(cls,
+             limit: t.Optional[int] = None) -> t.List['FirebaseBaseModel']:
         LOG.info(f'Listing {cls}')
         ref = firebase.get_db().collection(cls.ref)
 
@@ -37,11 +38,11 @@ class FirebaseBaseModel(models.Base):
 
     @classmethod
     @functools.lru_cache(maxsize=10, typed=True)
-    def one(cls, key):
+    def one(cls, key: str) -> 'FirebaseBaseModel':
         LOG.info(f'Fetching {cls}={key}')
         if key is None:
             raise ValueError(
-                'Cannot fetch unique element without specified key'
+                'Cannot fetch unique element without specified key',
             )
 
         ref: DocumentReference = (
@@ -54,7 +55,10 @@ class FirebaseBaseModel(models.Base):
         return cls(key=key, **doc.to_dict())
 
     @classmethod
-    def save(cls, data: typing.List[typing.Union[models.Base, dict]]):
+    def save(
+            cls,
+            data: t.List[t.Union[t.Dict[str, t.Any], 'FirebaseBaseModel']],
+    ) -> None:
         LOG.info(f'Saving {len(data)} object of {cls}')
         client = firebase.get_db()
         batch = client.batch()
@@ -68,6 +72,6 @@ class FirebaseBaseModel(models.Base):
         batch.commit()
 
     @classmethod
-    def update(cls, key: str, field_updates: dict):
+    def update(cls, key: str, field_updates: dict) -> None:
         client = firebase.get_db()
         client.document(cls.ref, key).update(field_updates)

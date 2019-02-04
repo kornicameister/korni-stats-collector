@@ -9,7 +9,8 @@ from google.cloud import firestore as g_firestore
 
 PROJECT_ID = 'korni-stats'
 CREDENTIALS_FILE_PATH = os.environ.get(
-    'KSC_FIREBASE_CRED', f'{Path.home()}/dev/korni-stats.json'
+    'KSC_FIREBASE_CRED',
+    f'{Path.home()}/dev/korni-stats.json',
 )
 
 
@@ -17,7 +18,8 @@ CREDENTIALS_FILE_PATH = os.environ.get(
 def get_db() -> g_firestore.Client:
     if not os.path.exists(CREDENTIALS_FILE_PATH):
         raise RuntimeError(
-            f'{CREDENTIALS_FILE_PATH} firebase credentials file does not exist'
+            f'{CREDENTIALS_FILE_PATH} firebase credentials file does not '
+            f'exist',
         )
 
     cred = credentials.Certificate(CREDENTIALS_FILE_PATH)
