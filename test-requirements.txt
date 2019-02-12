@@ -1,4 +1,4 @@
-yapf==0.25.0
+yapf==0.26.0
 mypy==0.660
 flake8==3.7.4
 flake8-import-order==0.18
