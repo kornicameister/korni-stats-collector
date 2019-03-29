@@ -1,4 +1,4 @@
 -r requirements/yapf.txt
 -r requirements/mypy.txt
 -r requirements/flake8.txt
-tox==3.8.0
+tox==3.8.1
