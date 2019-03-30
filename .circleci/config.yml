@@ -11,7 +11,18 @@ jobs:
       - run: sudo chown -R circleci:circleci /usr/local/bin
       - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
       - run: pip install pip tox --upgrade
-      - run: tox
+      - run:
+          name: Check formatting
+          command: tox -e yapf
+      - run:
+          name: Check mypy
+          command: tox -e mypy
+      - run:
+          name: Check flake
+          command: tox -e flake8
+      - run:
+          name: Unit test
+          command: tox -e test_unit
 
   build:
     docker:

@@ -10,11 +10,13 @@ import typing as t
 import aiohttp
 import async_timeout
 import purl
+import pydantic as pd
 import ujson
 
 from ksc import utils
 from ksc.collector import base
-from ksc.collector.model import github
+from ksc.collector.github import github
+from ksc.collector.model import collector
 
 LOG: logging.Logger = logging.getLogger(__name__)
 
@@ -32,44 +34,40 @@ GITHUB_URLS = {
 }
 GITHUB_RESPONSE_STATUS_CODES = {'empty_repo': 409}
 
-API_OBJECT = t.Union[github.APILimit, github.GithubObject]
+T = t.TypeVar(
+    'T',
+    github.PullRequest,
+    github.Issue,
+    github.Commit,
+    github.APILimit,
+    github.User,
+    github.Repo,
+)
 
 
-async def fetch_user(
-        token: str,
-        session: aiohttp.ClientSession,
-) -> github.User:
+async def fetch_user(session: aiohttp.ClientSession) -> github.User:
     return await fetch_one(
         github.User,
-        token,
         GITHUB_URLS['fetch_authenticated_user'],
         session,
     )
 
 
 async def fetch_repos(
-        token: str,
         url: str,
         session: aiohttp.ClientSession,
         params: t.Optional[t.Dict[str, str]] = None,
 ) -> t.List[github.Repo]:
-    return await fetch_list(github.Repo, token, url, session, params)
+    return await fetch_list(github.Repo, url, session, params)
 
 
 async def fetch_contributions(
-        token: str,
         repo: github.Repo,
         since: datetime.datetime,
         until: datetime.datetime,
         author: str,
         session: aiohttp.ClientSession,
-) -> t.Optional[t.Dict[str, t.Any]]:
-    def pr_author(r: github.PullRequest) -> bool:
-        return r.author_association.lower() in [
-            'owner',
-            'contributor',
-        ] and r.user.login == author
-
+) -> t.Optional[collector.Contribution]:
     def filter_pr_open_since(pr: github.PullRequest) -> bool:
         return pr.created_at >= since
 
@@ -84,14 +82,12 @@ async def fetch_contributions(
         await asyncio.gather(
             fetch_list(
                 github.Commit,
-                token,
                 purl.expand(repo.commits_url),
                 session,
                 {'since': since.isoformat()},
             ),
             fetch_list(
                 github.Commit,
-                token,
                 purl.expand(repo.commits_url),
                 session,
                 {
@@ -101,14 +97,12 @@ async def fetch_contributions(
             ),
             fetch_list(
                 github.Issue,
-                token,
                 purl.expand(repo.issues_url),
                 session,
                 {'since': since.isoformat()},
             ),
             fetch_list(
                 github.Issue,
-                token,
                 purl.expand(repo.issues_url),
                 session,
                 {
@@ -118,22 +112,20 @@ async def fetch_contributions(
             ),
             fetch_list(
                 github.PullRequest,
-                token,
                 purl.expand(repo.pulls_url),
                 session,
                 {
-                    'base': 'master',
+                    'collector': 'master',
                     'state': 'open',
                     'sort': 'created',
                 },
             ),
             fetch_list(
                 github.PullRequest,
-                token,
                 purl.expand(repo.pulls_url),
                 session,
                 {
-                    'base': 'master',
+                    'collector': 'master',
                     'state': 'closed',
                     'sort': 'created',
                 },
@@ -156,93 +148,79 @@ async def fetch_contributions(
             f'in {repo.name} since {since}',
         )
         return None
+    else:
+        commits_count_total = len(contributions[0])
+        commits_count_authored = len(contributions[1])
+        issues_count_total = len(contributions[2])
+        issues_count_authored = len(contributions[3])
+        pull_request_count_total_open = len(contributions[4])
+        pull_request_count_total_merged = len(contributions[5])
+        pull_request_count_authored_open = utils.ilen(
+            filter(lambda pr: pr.is_authored_by(author), contributions[4]),
+        )
+        pull_request_count_authored_merged = utils.ilen(
+            filter(lambda pr: pr.is_authored_by(author), contributions[5]),
+        )
 
-    commits_count_total = len(contributions[0])
-    commits_count_authored = len(contributions[1])
-    issues_count_total = len(contributions[2])
-    issues_count_authored = len(contributions[3])
-    pull_request_count_total_open = len(contributions[4])
-    pull_request_count_total_merged = len(contributions[5])
-    pull_request_count_authored_open = utils.ilen(
-        filter(pr_author, contributions[4]),
-    )
-    pull_request_count_authored_merged = utils.ilen(
-        filter(pr_author, contributions[5]),
-    )
+        repo_name = (
+            repo.full_name if not repo.private else
+            hashlib.sha256(repo.full_name.encode('utf-8')).hexdigest()
+        )
 
-    encoded_repo_name = repo.full_name.encode('utf-8')
-    repo_name = (
-        repo.full_name
-        if not repo.private else hashlib.sha256(encoded_repo_name).hexdigest()
-    )
-
-    result = {
-        'repo': repo_name,
-        'is_fork': repo.fork,
-        'is_private': repo.private,
-        'from': since,
-        'until': until,
-        'commits_count': {
-            'total': commits_count_total,
-            'authored': commits_count_authored,
-        },
-        'issues_count': {
-            'total': issues_count_total,
-            'authored': issues_count_authored,
-        },
-        'pull_request_count': {
-            'total': {
-                'open': pull_request_count_total_open,
-                'merged': pull_request_count_total_merged,
-            },
-            'authored': {
-                'open': pull_request_count_authored_open,
-                'merged': pull_request_count_authored_merged,
-            },
-        },
-    }
-
-    return result
+        return collector.Contribution(
+            repo=repo_name,
+            is_fork=repo.fork,
+            is_private=repo.private,
+            commits_count=collector.CommitsCount(
+                total=commits_count_total,
+                authored=commits_count_authored,
+            ),
+            issues_count=collector.IssuesCount(
+                total=issues_count_total,
+                authored=issues_count_authored,
+            ),
+            pull_request_count=collector.PullRequestCount(
+                total=collector.PullRequestCountStat(
+                    open=pull_request_count_total_open,
+                    merged=pull_request_count_total_merged,
+                ),
+                authored=collector.PullRequestCountStat(
+                    open=pull_request_count_authored_open,
+                    marged=pull_request_count_authored_merged,
+                ),
+            ),
+        )
 
 
-async def fetch_api_limit(
-        token: str,
-        session: aiohttp.ClientSession,
-) -> github.APILimit:
+async def fetch_api_limit(session: aiohttp.ClientSession) -> github.APILimit:
     return await fetch_one(
         github.APILimit,
-        token,
         GITHUB_URLS['fetch_api_limit'],
         session,
     )
 
 
 async def fetch_one(
-        model: t.Type[API_OBJECT],
-        token: str,
+        model: t.Type[T],
         url: str,
         session: aiohttp.ClientSession,
         params: t.Optional[t.Dict[str, str]] = None,
-) -> API_OBJECT:
+) -> T:
     LOG.info(f'fetch_one(model={model}, url={url}, params={params})')
 
     async with async_timeout.timeout(REQUEST_TIMEOUT):
-        async with session.get(
-                url, params=params,
-                headers={'Authorization': f'token {token}'}) as response:
+        async with session.get(url, params=params) as response:
             raise_for_limit(response)
-
-            return model(**await response.json(loads=ujson.loads))
+            return model.parse_obj(await response.json())
 
 
 async def fetch_list(
-        model: t.Type[API_OBJECT],
-        token: str,
+        model: t.Type[T],
         url: str,
         session: aiohttp.ClientSession,
         params: t.Optional[t.Dict[str, str]] = None,
-        data: t.Optional[t.List[github.GithubObject]] = None,
-) -> t.List[API_OBJECT]:
+        data: t.Optional[t.List[T]] = None,
+) -> t.List[T]:
     if data is None:
         data = []
 
@@ -253,26 +231,40 @@ async def fetch_list(
     LOG.info(f'fetch_repo_data(model={model}, url={url}, params={params})')
 
     async with async_timeout.timeout(REQUEST_TIMEOUT):
-        async with session.get(
-                url,
-                params=params,
-                headers={'Authorization': f'token {token}'},
-        ) as response:
-
+        async with session.get(url, params=params) as response:
             raise_for_limit(response)
+
+            def parse_obj_safe(d: t.Any) -> t.Optional[T]:
+                try:
+                    return model.parse_obj(d)
+                except pd.ValidationError:
+                    LOG.exception(
+                        f'Failed to parse [{d}, {type(d)}] as {model}',
+                    )
+                    return None
 
             if response.status == GITHUB_RESPONSE_STATUS_CODES['empty_repo']:
                 data.extend([])
             else:
-                data.extend([
-                    model(**d) for d in await response.json(loads=ujson.loads)
-                ])
+                response_obj = await response.json()
+                if isinstance(response_obj, list):
+                    response_data = filter(
+                        lambda x: x is not None,
+                        (parse_obj_safe(d) for d in response_obj),
+                    )
+                    for rd in response_data:
+                        if rd is not None:
+                            data.append(rd)
+                else:
+                    LOG.warning(
+                        'Received non iterable response, '
+                        'when list was expected',
+                    )
 
             next_link = utils.get_next_link(response.headers.get('link', ''))
             if next_link:
                 return await fetch_list(
                     model,
-                    token,
                     next_link,
                     session,
                     params,
@@ -281,12 +273,17 @@ async def fetch_list(
             return data
 
 
-async def main(last_run_date: datetime.datetime, token: str) \
-        -> base.CollectorResult:
+async def main(
+        last_run_date: datetime.datetime,
+        token: str,
+) -> collector.Result:
     start = time.time()
 
-    async with aiohttp.ClientSession(json_serialize=ujson.dumps) as session:
-        api_limit = await fetch_api_limit(token, session)
+    async with aiohttp.ClientSession(
+            json_serialize=ujson.dumps,
+            headers={'Authorization': f'token {token}'},
+    ) as session:
+        api_limit = await fetch_api_limit(session)
 
         if api_limit.rate.remaining == 0:
             raise RuntimeError(
@@ -295,24 +292,22 @@ async def main(last_run_date: datetime.datetime, token: str) \
         else:
             LOG.info(f'{api_limit.rate.remaining} requests available')
 
-        user = await fetch_user(token, session)
+        user = await fetch_user(session)
         repos = await asyncio.gather(
-            fetch_repos(token, user.repos_url, session),
+            fetch_repos(user.repos_url, session),
             fetch_repos(
-                token,
                 GITHUB_URLS['fetch_all_repos'],
                 session,
                 {'visibility': 'private'},
             ),
         )
 
-        user_contributions: t.List[t.Dict[str, t.Any]] = list(
+        user_contributions: t.List[collector.Contribution] = list(
             filter(
                 None,
                 await asyncio.gather(
                     *[
                         fetch_contributions(
-                            token,
                             repo,
                             last_run_date,
                             datetime.datetime.today(),
@@ -324,7 +319,7 @@ async def main(last_run_date: datetime.datetime, token: str) \
             ),
         )
 
-        return base.CollectorResult(
+        return collector.Result(
             user=user.login,
             since=last_run_date,
             until=datetime.datetime.today(),
@@ -334,10 +329,14 @@ async def main(last_run_date: datetime.datetime, token: str) \
 
 
 def raise_for_limit(response: aiohttp.ClientResponse) -> None:
-    remaining = int(response.headers['X-RateLimit-Remaining'])
+    remaining = int(response.headers.get('X-RateLimit-Remaining', -1))
     if response.status == 403 and remaining == 0:
         raise RuntimeError('API limit exceeded')
 
 
-def collect(last_run_date: datetime.datetime) -> base.CollectorResult:
-    return asyncio.run(main(last_run_date, os.environ[GITHUB_API_KEY]))
+class GithubCollector(base.Collector):
+    def collect(self) -> collector.Result:
+        return asyncio.run(main(
+            self.since,
+            os.environ[GITHUB_API_KEY],
+        ))

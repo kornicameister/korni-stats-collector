@@ -2,9 +2,9 @@ import abc
 import datetime
 import typing as t
 
-import six
+import pytz
 
-from ksc.database.firebase import contribution
+from ksc.collector.model import collector
 
 
 class CollectorConfigurationError(RuntimeError):
@@ -15,48 +15,41 @@ class CollectorSourceUnavailable(Exception):
     pass
 
 
-class CollectorResult(object):
+class Collector(abc.ABC):
+    since: datetime.datetime
+    until: t.Optional[datetime.datetime]
+
     def __init__(
             self,
-            user: str,
-            since: datetime.datetime,
-            until: datetime.datetime,
-            took_ms: float,
-            contributions: t.Iterable[dict],
+            since: t.Optional[datetime.datetime] = None,
+            until: t.Optional[datetime.datetime] = None,
     ) -> None:
-        self._user = user
-        self._since = since
-        self._until = until
-        self._took_ms = took_ms
-        self._contributions = list(contributions)
+        if since is None and until is None:
+            self.since = datetime.datetime.utcnow()
+            self.until = None
+        elif since is not None and until is None:
+            self.since = since
+            self.until = datetime.datetime.utcnow()
+        elif since is None and until is not None:
+            raise ValueError('Cannot collect without knowing where to start')
+        elif since is not None and until is not None:
+            self.since = since
+            self.until = until
+        else:
+            raise ValueError('Impossible to happen, but it did')
 
-    @property
-    def user(self) -> str:
-        return self._user
-
-    @property
-    def since(self) -> datetime.datetime:
-        return self._since
-
-    @property
-    def until(self) -> datetime.datetime:
-        return self._until
-
-    @property
-    def took_ms(self) -> float:
-        return self._took_ms
-
-    @property
-    def contributions(self) -> t.List[dict]:
-        return self._contributions
-
-
-@six.add_metaclass(abc.ABCMeta)
-class Collector(object):
-    @abc.abstractmethod
-    def collect(self) -> t.List[contribution.Contribution]:
-        pass
+        self.since = pytz.utc.localize(self.since)
+        if self.until:
+            self.until = pytz.utc.localize(self.until)
+            if self.since >= self.until:
+                raise ValueError('since cannot be larger or equal to until')
 
     @abc.abstractmethod
-    def init(self) -> None:
+    def collect(self) -> collector.Result:
         pass
+
+    def __repr__(self) -> str:
+        return (
+            f'Collector {type(self)} '
+            f':: since={self.since}, until={self.until}'
+        )
