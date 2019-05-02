@@ -15,16 +15,16 @@ class APILimit(pd.BaseModel):
 
 class User(pd.BaseModel):
     login: str
-    repos_url: str
+    repos_url: pd.UrlStr
 
 
 class Repo(pd.BaseModel):
     name: str
     full_name: str
 
-    commits_url: str
-    pulls_url: str
-    issues_url: str
+    commits_url: pd.UrlStr
+    pulls_url: pd.UrlStr
+    issues_url: pd.UrlStr
 
     private: bool
     fork: bool

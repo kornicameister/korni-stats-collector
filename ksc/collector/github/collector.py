@@ -9,9 +9,9 @@ import typing as t
 
 import aiohttp
 import async_timeout
-import purl
 import pydantic as pd
 import ujson
+import yarl
 
 from ksc import utils
 from ksc.collector import base
@@ -26,11 +26,11 @@ GITHUB_PWD_KEY: str = 'GITHUB_PASSWORD'
 
 REQUEST_TIMEOUT: int = 360
 
-GITHUB_API_URL = 'https://api.github.com'
+GITHUB_API_URL = yarl.URL('https://api.github.com')
 GITHUB_URLS = {
-    'fetch_authenticated_user': f'{GITHUB_API_URL}/user',
-    'fetch_all_repos': f'{GITHUB_API_URL}/user/repos',
-    'fetch_api_limit': f'{GITHUB_API_URL}/rate_limit',
+    'fetch_authenticated_user': GITHUB_API_URL / 'user',
+    'fetch_all_repos': GITHUB_API_URL / 'user/repos',
+    'fetch_api_limit': GITHUB_API_URL / 'rate_limit',
 }
 GITHUB_RESPONSE_STATUS_CODES = {'empty_repo': 409}
 
@@ -54,7 +54,7 @@ async def fetch_user(session: aiohttp.ClientSession) -> github.User:
 
 
 async def fetch_repos(
-        url: str,
+        url: yarl.URL,
         session: aiohttp.ClientSession,
         params: t.Optional[t.Dict[str, str]] = None,
 ) -> t.List[github.Repo]:
@@ -82,13 +82,13 @@ async def fetch_contributions(
         await asyncio.gather(
             fetch_list(
                 github.Commit,
-                purl.expand(repo.commits_url),
+                yarl.URL(repo.commits_url),
                 session,
                 {'since': since.isoformat()},
             ),
             fetch_list(
                 github.Commit,
-                purl.expand(repo.commits_url),
+                yarl.URL(repo.commits_url),
                 session,
                 {
                     'author': author,
@@ -97,13 +97,13 @@ async def fetch_contributions(
             ),
             fetch_list(
                 github.Issue,
-                purl.expand(repo.issues_url),
+                yarl.URL(repo.issues_url),
                 session,
                 {'since': since.isoformat()},
             ),
             fetch_list(
                 github.Issue,
-                purl.expand(repo.issues_url),
+                yarl.URL(repo.issues_url),
                 session,
                 {
                     'creator': author,
@@ -112,7 +112,7 @@ async def fetch_contributions(
             ),
             fetch_list(
                 github.PullRequest,
-                purl.expand(repo.pulls_url),
+                yarl.URL(repo.pulls_url),
                 session,
                 {
                     'collector': 'master',
@@ -122,7 +122,7 @@ async def fetch_contributions(
             ),
             fetch_list(
                 github.PullRequest,
-                purl.expand(repo.pulls_url),
+                yarl.URL(repo.pulls_url),
                 session,
                 {
                     'collector': 'master',
@@ -202,7 +202,7 @@ async def fetch_api_limit(session: aiohttp.ClientSession) -> github.APILimit:
 
 async def fetch_one(
         model: t.Type[T],
-        url: str,
+        url: yarl.URL,
         session: aiohttp.ClientSession,
         params: t.Optional[t.Dict[str, str]] = None,
 ) -> T:
@@ -216,7 +216,7 @@ async def fetch_one(
 
 async def fetch_list(
         model: t.Type[T],
-        url: str,
+        url: yarl.URL,
         session: aiohttp.ClientSession,
         params: t.Optional[t.Dict[str, str]] = None,
         data: t.Optional[t.List[T]] = None,
@@ -259,6 +259,7 @@ async def fetch_list(
                     LOG.warning(
                         'Received non iterable response, '
                         'when list was expected',
+                        extra=dict(response=response_obj),
                     )
 
             next_link = utils.get_next_link(response.headers.get('link', ''))
@@ -294,7 +295,7 @@ async def main(
 
         user = await fetch_user(session)
         repos = await asyncio.gather(
-            fetch_repos(user.repos_url, session),
+            fetch_repos(yarl.URL(user.repos_url), session),
             fetch_repos(
                 GITHUB_URLS['fetch_all_repos'],
                 session,
