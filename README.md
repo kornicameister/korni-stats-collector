@@ -1,5 +1,4 @@
-[![Updates](https://pyup.io/repos/github/kornicameister/korni-stats-collector/shield.svg)](https://pyup.io/repos/github/kornicameister/korni-stats-collector/) [![Python 3](https://pyup.io/repos/github/kornicameister/korni-stats-collector/python-3-shield.svg)](https://pyup.io/repos/github/kornicameister/korni-stats-collector/)
-
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=kornicameister/korni-stats-collector)](https://dependabot.com)
 
 # korni-stats-collector
 
