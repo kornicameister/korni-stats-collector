@@ -3,7 +3,7 @@ click==7.0
 google-cloud-firestore==1.4.0
 firebase-admin==2.17.0
 
-uvloop==0.12.2
+uvloop==0.13.0
 aiohttp==3.5.4
 cchardet==2.1.4
 aiodns==2.0.0
