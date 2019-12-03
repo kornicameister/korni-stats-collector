@@ -2,4 +2,4 @@
 -r requirements/mypy.txt
 -r requirements/flake8.txt
 -r requirements/tests.txt
-tox==3.14.1
+tox==3.14.2
