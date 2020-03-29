@@ -62,11 +62,11 @@ async def fetch_repos(
 
 
 async def fetch_contributions(
-        repo: github.Repo,
-        since: datetime.datetime,
-        until: datetime.datetime,
-        author: str,
-        session: aiohttp.ClientSession,
+    repo: github.Repo,
+    since: datetime.datetime,
+    until: datetime.datetime,
+    author: str,
+    session: aiohttp.ClientSession,
 ) -> t.Optional[collector.Contribution]:
     def filter_pr_open_since(pr: github.PullRequest) -> bool:
         return pr.created_at >= since
