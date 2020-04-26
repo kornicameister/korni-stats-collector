@@ -54,9 +54,9 @@ async def fetch_user(session: aiohttp.ClientSession) -> github.User:
 
 
 async def fetch_repos(
-        url: yarl.URL,
-        session: aiohttp.ClientSession,
-        params: t.Optional[t.Dict[str, str]] = None,
+    url: yarl.URL,
+    session: aiohttp.ClientSession,
+    params: t.Optional[t.Dict[str, str]] = None,
 ) -> t.List[github.Repo]:
     return await fetch_list(github.Repo, url, session, params)
 
@@ -201,10 +201,10 @@ async def fetch_api_limit(session: aiohttp.ClientSession) -> github.APILimit:
 
 
 async def fetch_one(
-        model: t.Type[T],
-        url: yarl.URL,
-        session: aiohttp.ClientSession,
-        params: t.Optional[t.Dict[str, str]] = None,
+    model: t.Type[T],
+    url: yarl.URL,
+    session: aiohttp.ClientSession,
+    params: t.Optional[t.Dict[str, str]] = None,
 ) -> T:
     LOG.info(f'fetch_one(model={model}, url={url}, params={params})')
 
@@ -215,11 +215,11 @@ async def fetch_one(
 
 
 async def fetch_list(
-        model: t.Type[T],
-        url: yarl.URL,
-        session: aiohttp.ClientSession,
-        params: t.Optional[t.Dict[str, str]] = None,
-        data: t.Optional[t.List[T]] = None,
+    model: t.Type[T],
+    url: yarl.URL,
+    session: aiohttp.ClientSession,
+    params: t.Optional[t.Dict[str, str]] = None,
+    data: t.Optional[t.List[T]] = None,
 ) -> t.List[T]:
     if data is None:
         data = []
@@ -275,8 +275,8 @@ async def fetch_list(
 
 
 async def main(
-        last_run_date: datetime.datetime,
-        token: str,
+    last_run_date: datetime.datetime,
+    token: str,
 ) -> collector.Result:
     start = time.time()
 

@@ -20,9 +20,9 @@ class Collector(abc.ABC):
     until: t.Optional[datetime.datetime]
 
     def __init__(
-            self,
-            since: t.Optional[datetime.datetime] = None,
-            until: t.Optional[datetime.datetime] = None,
+        self,
+        since: t.Optional[datetime.datetime] = None,
+        until: t.Optional[datetime.datetime] = None,
     ) -> None:
         if since is None and until is None:
             self.since = datetime.datetime.utcnow()

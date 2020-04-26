@@ -9,7 +9,5 @@ setup(
     author='kornicameister@gmail.com',
     license='Apache 2.0',
     long_description=open('README.md').read(),
-    exclude_package_data={
-        '': ['.git', '.gitignore', '.vscode']
-    }
+    exclude_package_data={'': ['.git', '.gitignore', '.vscode']}
 )
