@@ -1,6 +1,6 @@
 click==7.1.2
 
-google-cloud-firestore==1.6.2
+google-cloud-firestore==1.7.0
 firebase-admin==4.3.0
 
 uvloop==0.14.0
