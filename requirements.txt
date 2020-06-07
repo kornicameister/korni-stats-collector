@@ -9,6 +9,6 @@ cchardet==2.1.6
 aiodns==2.0.0
 yarl==1.4.2
 
-ujson==2.0.3
+ujson==3.0.0
 pydantic==1.5.1
 
