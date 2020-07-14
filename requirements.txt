@@ -10,5 +10,5 @@ aiodns==2.0.0
 yarl==1.4.2
 
 ujson==3.0.0
-pydantic==1.5.1
+pydantic==1.6
 
